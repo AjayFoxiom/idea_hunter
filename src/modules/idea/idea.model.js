@@ -1,0 +1,31 @@
+const mongoose = require('mongoose');
+const normalizeUrl = require('../../utils/normalizeUrl');
+
+const ideaSchema = new mongoose.Schema(
+  {
+    date: { type: String, required: true },
+    pain: { type: String, required: true },
+    who: { type: String, required: true },
+    source_platform: { type: String, required: true, index: true },
+    source_link: { type: String, required: true, unique: true }, // natural dedupe key
+    current_workaround: String,
+    est_reach: String,
+    stage: {
+      type: String,
+      enum: ['harvest', 'reviewing', 'shortlisted', 'rejected', 'fixed', 'building', 'learning'],
+      default: 'harvest',
+      index: true,
+    },
+    score: { type: Number, default: null },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    isDeleted: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
+
+ideaSchema.pre('validate', function normalizeSourceLink(next) {
+  if (this.source_link) this.source_link = normalizeUrl(this.source_link);
+  next();
+});
+
+module.exports = mongoose.model('Idea', ideaSchema);
