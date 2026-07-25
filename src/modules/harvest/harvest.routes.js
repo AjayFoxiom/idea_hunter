@@ -12,6 +12,6 @@ const harvestLimiter = rateLimit({
   message: { error: 'Harvest already run recently, try again later' },
 });
 
-router.get('/', protect, harvestLimiter, harvestController.triggerHarvest);
+router.post('/', protect, harvestLimiter, harvestController.triggerHarvest);
 
 module.exports = router;
