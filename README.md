@@ -45,10 +45,11 @@ All `/api/ideas` and `/api/harvest` routes require a Bearer token.
 
 ## Ideas / harvest
 
-- `POST /api/harvest` — runs today's Gemini search-grounded harvest, rate-limited (5/day)
-- `GET /api/ideas?stage=harvest` — list, optional stage filter
-- `PATCH /api/ideas/:id` — update stage/score
+- `POST /api/harvest` — runs today's search-grounded harvest, rate-limited
+- `GET /api/ideas?status=inbox` — list ideas, optional `status` (or `stage`) filter (`inbox`, `inreview`, `shortlisted`, `rejected`, `indevelopment`)
+- `PATCH /api/ideas/:id` — update status/score (accepts `status` or `stage`: `inbox`, `inreview`, `shortlisted`, `rejected`, `indevelopment`)
 - `DELETE /api/ideas/:id`
+
 
 ## Notes
 

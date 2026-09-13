@@ -19,6 +19,9 @@ const userSchema = new mongoose.Schema(
     },
     isActive: { type: Boolean, default: true },
     isDeleted: { type: Boolean, default: false },
+    autoSearchTime: { type: Number, default: 20 },
+    enableNotifications: { type: Boolean, default: true },
+    fcm: { type: String },
   },
   { timestamps: true }
 );

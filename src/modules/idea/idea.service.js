@@ -25,7 +25,13 @@ async function getAll(req, res) {
   return ideaRepository.findIdeas(req, res);
 }
 
-async function updateStage(id, updates) {
+async function getById(id) {
+  const idea = await ideaRepository.findIdeaById(id);
+  if (!idea) throw new AppError(404, 'Idea not found');
+  return idea;
+}
+
+async function updateIdea(id, updates) {
   const idea = await ideaRepository.updateIdeaById(id, updates);
   if (!idea) throw new AppError(404, 'Idea not found');
   return idea;
@@ -36,4 +42,6 @@ async function remove(id) {
   if (!idea) throw new AppError(404, 'Idea not found');
 }
 
-module.exports = { saveNewIdeas, createIdea, getAll, updateStage, remove };
+module.exports = { saveNewIdeas, createIdea, getAll, getById, updateIdea, remove };
+
+

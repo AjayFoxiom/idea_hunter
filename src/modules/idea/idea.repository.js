@@ -13,29 +13,45 @@ async function insertManyIdeas(docs) {
 }
 
 async function findIdeas(req, res) {
-  const condition = { isDeleted: false }
-  if (req.query.stage) {
-    condition.stage = req.query.stage
-  }
+  const condition = { isDeleted: false };
+
+  // Filterable fields added in the updated model
+  if (req.query.status)          condition.status          = req.query.status;
+  if (req.query.category)        condition.category        = req.query.category;
+  if (req.query.source_platform) condition.source_platform = req.query.source_platform;
+  if (req.query.priority)        condition.priority        = req.query.priority;
+
   return fetchData(req, res, Idea, { condition, sort: { createdAt: -1 } });
 }
 
 async function updateIdeaById(id, updates) {
-  return Idea.findByIdAndUpdate(id, updates, { new: true });
+  const idea = await Idea.findById(id);
+  if (!idea) return null;
+
+  Object.assign(idea, updates);
+  return idea.save(); // triggers pre-save hook → status_history is updated automatically
 }
 
 async function deleteIdeaById(id) {
-  return Idea.findByIdAndDelete(id);
+  // Soft-delete: preserves the document for audit / status_history
+  return Idea.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
 }
 
 async function createIdea(data) {
   return Idea.create(data);
 }
 
+async function findIdeaById(id) {
+  return Idea.findOne({ _id: id, isDeleted: false });
+}
+
 module.exports = {
   createIdea,
   insertManyIdeas,
   findIdeas,
+  findIdeaById,
   updateIdeaById,
   deleteIdeaById,
 };
+
+

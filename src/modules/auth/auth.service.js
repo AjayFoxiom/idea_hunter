@@ -3,9 +3,18 @@ const userRepository = require('../user/user.repository');
 const { AppError } = require('../../middleware/errorHandler');
 
 function signToken(user) {
-  return jwt.sign({ sub: user._id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  });
+  return jwt.sign(
+    {
+      userId: user._id,
+      id: user._id,
+      sub: user._id,
+      role: user.role,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    }
+  );
 }
 
 async function register({ name, email, password }) {
@@ -18,12 +27,17 @@ async function register({ name, email, password }) {
   return { user: user.toSafeObject(), token: signToken(user) };
 }
 
-async function login({ email, password }) {
+async function login({ email, password, fcm }) {
   const user = await userRepository.findByEmail(email, true);
   if (!user || !(await user.comparePassword(password))) {
     throw new AppError(401, 'Invalid email or password');
   }
   if (!user.isActive) throw new AppError(403, 'Account is deactivated');
+
+  // Persist the FCM token if the client sent one (fire-and-forget)
+  if (fcm && user.fcm !== fcm) {
+    userRepository.updateUserById(user._id, { fcm });
+  }
 
   return { user: user.toSafeObject(), token: signToken(user) };
 }

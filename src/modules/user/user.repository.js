@@ -25,10 +25,15 @@ async function deleteUserById(id) {
   return User.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
 }
 
+async function findUserById(id) {
+  return User.findOne({ _id: id, isDeleted: false });
+}
+
 module.exports = {
   findByEmail,
   createUser,
   findAllUsers,
+  findUserById,
   updateUserById,
   deleteUserById,
 };

@@ -18,10 +18,12 @@ const protect = asyncHandler(async (req, res, next) => {
     throw new AppError(401, 'Invalid or expired token');
   }
 
-  const user = await User.findById(payload.sub);
+  const userId = payload.userId || payload.id || payload.sub;
+  const user = await User.findById(userId);
   if (!user || !user.isActive) throw new AppError(401, 'User not found or inactive');
 
   req.user = user;
+  req.userId = userId;
   next();
 });
 

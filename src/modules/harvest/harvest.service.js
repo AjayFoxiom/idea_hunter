@@ -1,6 +1,5 @@
 const { OpenAI } = require('openai');
 const axios = require('axios');
-const pLimit = require('p-limit');
 const { ALL_SOURCES, buildHarvestPrompt } = require('../../constants/sources');
 const parseJsonSafe = require('../../utils/parseJsonSafe');
 const logger = require('../../utils/logger');
@@ -16,9 +15,8 @@ const MODEL_CHAIN = [
   'google/gemma-4-26b-a4b-it:free',
 ];
 
-const EXTRACT_CONCURRENCY = 3;
-const EXTRACT_TIMEOUT_MS = 25000;
-const limit = pLimit(EXTRACT_CONCURRENCY);
+// Reduced from 25s — models hanging beyond 15s always fall to the next in chain anyway.
+const EXTRACT_TIMEOUT_MS = 15000;
 
 async function tavilySearch(source) {
   const start = Date.now();
@@ -79,17 +77,20 @@ async function extractWithFallback(date, source, results) {
   return [];
 }
 
+// Pipeline: each source chains search → extract as one promise.
+// All 9 run fully in parallel — no two-phase barrier waiting for all searches
+// before any extraction can start, and no artificial concurrency cap on I/O-bound calls.
+async function harvestSource(date, source) {
+  const { results } = await tavilySearch(source);
+  if (!results.length) return [];
+  return extractWithFallback(date, source, results);
+}
+
 async function harvestIdeas(date) {
   const harvestStart = Date.now();
 
-  const searchResults = await Promise.all(ALL_SOURCES.map(tavilySearch));
-
   const extractions = await Promise.all(
-    searchResults
-      .filter(({ results }) => results.length > 0)
-      .map(({ source, results }) =>
-        limit(() => extractWithFallback(date, source, results))
-      )
+    ALL_SOURCES.map(source => harvestSource(date, source))
   );
 
   const allCandidates = extractions.flat().filter(Boolean);

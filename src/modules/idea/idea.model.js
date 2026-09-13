@@ -1,19 +1,50 @@
 const mongoose = require('mongoose');
 const normalizeUrl = require('../../utils/normalizeUrl');
+const { IDEA_STATUSES, DEFAULT_IDEA_STATUS } = require('../../constants/ideaStatus');
+
+// No shared constants file for these yet — kept local to the model.
+const RATING_LEVELS = ['Low', 'Medium', 'High'];
 
 const ideaSchema = new mongoose.Schema(
   {
+    // --- Original sourcing fields (raw/auto-generated pain points) ---
     date: { type: String, required: true },
-    pain: { type: String, required: true },
-    who: { type: String, required: true },
-    source_platform: { type: String, required: true, index: true },
-    source_link: { type: String, required: true, unique: true }, // natural dedupe key
+    pain: { type: String },
+    who: { type: String },
+    source_platform: { type: String, index: true },
+    source_link: {
+      type: String,
+      unique: true,
+      sparse: true, // allows manually-created ideas to omit this
+    },
     current_workaround: String,
     est_reach: String,
-    stage: {
+
+    // --- Project-card fields (matches the UI) ---
+    title: { type: String, required: true, trim: true },
+    description: { type: String, required: true },
+    category: { type: String, index: true },
+    priority: { type: String, enum: RATING_LEVELS, default: 'Medium' },
+    target_users: { type: String },
+    effort: { type: String, enum: RATING_LEVELS, default: 'Medium' },
+    estimated_impact: { type: String, enum: RATING_LEVELS, default: 'Medium' },
+    revenue_potential: { type: String, enum: RATING_LEVELS, default: 'Medium' },
+
+    // --- Progress tracking ---
+    progress_percent: { type: Number, default: 0, min: 0, max: 100 },
+    status_history: [
+      {
+        status: { type: String, enum: IDEA_STATUSES, required: true },
+        changed_at: { type: Date, default: Date.now },
+        _id: false,
+      },
+    ],
+
+    // --- Existing ---
+    status: {
       type: String,
-      enum: ['harvest', 'reviewing', 'shortlisted', 'rejected', 'fixed', 'building', 'learning'],
-      default: 'harvest',
+      enum: IDEA_STATUSES,
+      default: DEFAULT_IDEA_STATUS,
       index: true,
     },
     score: { type: Number, default: null },
@@ -29,4 +60,16 @@ ideaSchema.pre('validate', function normalizeSourceLink(next) {
   next();
 });
 
-module.exports = mongoose.model('Idea', ideaSchema);
+ideaSchema.pre('save', function trackStatusHistory(next) {
+  if (this.isModified('status') || this.isNew) {
+    this.status_history.push({ status: this.status, changed_at: new Date() });
+  }
+  next();
+});
+
+const Idea = mongoose.model('Idea', ideaSchema);
+Idea.IDEA_STATUSES = IDEA_STATUSES;
+Idea.DEFAULT_IDEA_STATUS = DEFAULT_IDEA_STATUS;
+Idea.RATING_LEVELS = RATING_LEVELS;
+
+module.exports = Idea;
